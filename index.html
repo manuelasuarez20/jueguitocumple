@@ -474,6 +474,101 @@
     transform: translateY(-1px);
   }
 
+  /* HISTORY */
+  #history-section {
+    width: 100%;
+    display: none;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 8px;
+  }
+  #history-section.visible { display: flex; }
+  .history-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .history-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .history-total {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+  }
+  .history-total span { color: var(--accent); }
+  .history-list { display: flex; flex-direction: column; gap: 8px; }
+  .history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    animation: slideIn 0.3s ease;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  .history-item .h-word {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 15px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .history-item.won .h-word { color: var(--correct); }
+  .history-item.lost .h-word { color: var(--accent); }
+  .history-item .h-meta { display: flex; align-items: center; gap: 10px; }
+  .history-item .h-tries { font-size: 11px; color: var(--muted); letter-spacing: 1px; }
+  .history-item .h-badge {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+  }
+  .history-item.won .h-badge {
+    background: rgba(74,222,128,0.15);
+    color: var(--correct);
+    border: 1px solid rgba(74,222,128,0.3);
+  }
+  .history-item.lost .h-badge {
+    background: rgba(255,77,109,0.1);
+    color: var(--accent);
+    border: 1px solid rgba(255,77,109,0.2);
+  }
+  .clear-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    padding: 4px 0;
+    align-self: center;
+    transition: color 0.2s;
+  }
+  .clear-btn:hover { color: var(--accent); }
+
   /* STATS STRIP */
   .stats-strip {
     display: flex;
@@ -516,6 +611,14 @@
 <div id="selector-screen">
   <div class="selector-title">Choisis le nombre de lettres</div>
   <div class="length-grid" id="length-grid"></div>
+  <div id="history-section">
+    <div class="history-header">
+      <div class="history-title">Parties jouées</div>
+      <div class="history-total">Total : <span id="total-tries">0</span> essais</div>
+    </div>
+    <div class="history-list" id="history-list"></div>
+    <button class="clear-btn" onclick="clearHistory()">Effacer l'historique</button>
+  </div>
 </div>
 
 <!-- GAME SCREEN -->
@@ -839,11 +942,56 @@
       ? `Trouvé en ${guesses.length} essai${guesses.length > 1 ? "s" : ""} sur ${MAX_GUESSES}`
       : "Le mot était…";
     modal.classList.add("open");
+    addToHistory(targetWord, won, guesses.length);
   }
 
   function playAgain() {
     document.getElementById("modal").classList.remove("open");
     goBack();
+  }
+
+  // ─── SESSION HISTORY ─────────────────────────────────────────
+  let sessionHistory = []; // { word, won, tries }
+
+  function addToHistory(word, won, tries) {
+    sessionHistory.push({ word, won, tries });
+    renderHistory();
+  }
+
+  function renderHistory() {
+    const section = document.getElementById("history-section");
+    const list = document.getElementById("history-list");
+    const totalEl = document.getElementById("total-tries");
+
+    if (sessionHistory.length === 0) {
+      section.classList.remove("visible");
+      return;
+    }
+
+    section.classList.add("visible");
+
+    const totalTries = sessionHistory.reduce((sum, h) => sum + h.tries, 0);
+    totalEl.textContent = totalTries;
+
+    list.innerHTML = "";
+    // Show most recent first
+    [...sessionHistory].reverse().forEach(h => {
+      const item = document.createElement("div");
+      item.className = "history-item " + (h.won ? "won" : "lost");
+      item.innerHTML = `
+        <div class="h-word">${h.word.toUpperCase()}</div>
+        <div class="h-meta">
+          <span class="h-tries">${h.tries} essai${h.tries > 1 ? "s" : ""}</span>
+          <span class="h-badge">${h.won ? "✓ Trouvé" : "✗ Raté"}</span>
+        </div>
+      `;
+      list.appendChild(item);
+    });
+  }
+
+  function clearHistory() {
+    sessionHistory = [];
+    renderHistory();
   }
 
   // ─── INIT ────────────────────────────────────────────────────
