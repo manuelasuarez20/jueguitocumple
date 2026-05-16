@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jueguito Para Chuchi Lindo</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d0d;
+    --surface: #1a1a1a;
+    --border: #2e2e2e;
+    --text: #f0ece4;
+    --muted: #555;
+    --correct: #4ade80;
+    --present: #facc15;
+    --absent: #3a3a3a;
+    --correct-dark: #166534;
+    --present-dark: #854d0e;
+    --accent: #ff4d6d;
+    --accent2: #7c3aed;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+  }
+
+  /* Grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 999;
+    opacity: 0.5;
+  }
+
+  header {
+    width: 100%;
+    max-width: 640px;
+    padding: 24px 20px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(28px, 6vw, 42px);
+    letter-spacing: -1px;
+    color: var(--text);
+    text-transform: uppercase;
+  }
+
+  .logo span {
+    color: var(--accent);
+  }
+
+  .tagline {
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .divider {
+    width: 100%;
+    max-width: 640px;
+    height: 1px;
+    background: var(--border);
+    margin: 16px 0;
+  }
+
+  /* WORD SELECTOR */
+  #selector-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    padding: 20px;
+    width: 100%;
+    max-width: 640px;
+  }
+
+  .selector-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .length-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+  }
+
+  .length-btn {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 28px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+  }
+
+  .length-btn:hover {
+    border-color: var(--accent);
+    background: #1f1f1f;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 77, 109, 0.2);
+  }
+
+  .length-btn .letter-count {
+    font-size: 28px;
+  }
+
+  .length-btn .letter-label {
+    font-size: 8px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    font-family: 'Space Mono', monospace;
+    font-weight: 400;
+  }
+
+  .length-btn .word-count {
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    font-size: 9px;
+    color: var(--accent);
+    font-family: 'Space Mono', monospace;
+    font-weight: 400;
+  }
+
+  /* GAME SCREEN */
+  #game-screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    width: 100%;
+    max-width: 640px;
+    padding: 0 10px;
+  }
+
+  .game-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0 10px 12px;
+  }
+
+  .game-meta .info {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .back-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .back-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* BOARD */
+  #board {
+    display: grid;
+    gap: 5px;
+    margin-bottom: 16px;
+  }
+
+  .tile-row {
+    display: flex;
+    gap: 5px;
+  }
+
+  .tile {
+    width: 52px;
+    height: 52px;
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    text-transform: uppercase;
+    transition: border-color 0.1s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  @media (max-width: 400px) {
+    .tile { width: 42px; height: 42px; font-size: 18px; }
+  }
+
+  .tile.filled {
+    border-color: var(--muted);
+    animation: pop 0.1s ease;
+  }
+
+  .tile.correct {
+    background: var(--correct);
+    border-color: var(--correct);
+    color: #0d0d0d;
+  }
+
+  .tile.present {
+    background: var(--present);
+    border-color: var(--present);
+    color: #0d0d0d;
+  }
+
+  .tile.absent {
+    background: var(--absent);
+    border-color: var(--absent);
+    color: #888;
+  }
+
+  .tile.reveal {
+    animation: flip 0.5s ease forwards;
+  }
+
+  .tile.shake {
+    animation: shake 0.4s ease;
+  }
+
+  .tile.bounce {
+    animation: bounce 0.6s ease;
+  }
+
+  @keyframes pop {
+    0% { transform: scale(0.85); }
+    50% { transform: scale(1.08); }
+    100% { transform: scale(1); }
+  }
+
+  @keyframes flip {
+    0% { transform: rotateX(0deg); }
+    50% { transform: rotateX(-90deg); }
+    51% { transform: rotateX(-90deg); }
+    100% { transform: rotateX(0deg); }
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    25% { transform: translateY(-12px); }
+    50% { transform: translateY(-6px); }
+    75% { transform: translateY(-3px); }
+  }
+
+  /* MESSAGE */
+  #message {
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--text);
+    margin-bottom: 8px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+  }
+
+  /* KEYBOARD */
+  #keyboard {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+    padding: 0 4px 24px;
+    width: 100%;
+  }
+
+  .key-row {
+    display: flex;
+    gap: 5px;
+  }
+
+  .key {
+    height: 52px;
+    min-width: 34px;
+    padding: 0 6px;
+    background: #2a2a2a;
+    border: none;
+    border-radius: 0;
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+  }
+
+  .key:hover {
+    background: #3a3a3a;
+  }
+
+  .key.wide {
+    min-width: 60px;
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+
+  .key.correct {
+    background: var(--correct);
+    color: #0d0d0d;
+  }
+
+  .key.present {
+    background: var(--present);
+    color: #0d0d0d;
+  }
+
+  .key.absent {
+    background: var(--absent);
+    color: #555;
+  }
+
+  /* MODAL */
+  #modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+
+  #modal.open {
+    display: flex;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .modal-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 36px 40px;
+    max-width: 340px;
+    width: 90%;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    animation: slideUp 0.3s ease;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .modal-box .emoji {
+    font-size: 40px;
+  }
+
+  .modal-box h2 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+  }
+
+  .modal-box .the-word {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 32px;
+    text-transform: uppercase;
+    letter-spacing: 4px;
+    color: var(--correct);
+  }
+
+  .modal-box p {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  .modal-box .attempts-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .modal-box .attempts-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--text);
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    border: none;
+    color: white;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    padding: 14px 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 8px;
+  }
+
+  .btn-primary:hover {
+    background: #e63352;
+    transform: translateY(-1px);
+  }
+
+  /* STATS STRIP */
+  .stats-strip {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    margin-top: 4px;
+  }
+
+  .stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .stat-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 24px;
+    font-weight: 800;
+  }
+
+  .stat-lbl {
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Jueguito <span>Para</span></div>
+  <div class="logo" style="font-size:clamp(22px,5vw,34px); margin-top:-6px;">Chuchi <span style="color:var(--present)">Lindo</span> 🧡</div>
+  <div class="tagline">Adivina la palabra secreta</div>
+</header>
+<div class="divider" style="max-width:640px;width:100%;"></div>
+
+<!-- SELECTOR SCREEN -->
+<div id="selector-screen">
+  <div class="selector-title">Choisis le nombre de lettres</div>
+  <div class="length-grid" id="length-grid"></div>
+</div>
+
+<!-- GAME SCREEN -->
+<div id="game-screen">
+  <div class="game-meta">
+    <div class="info" id="game-info"></div>
+    <button class="back-btn" onclick="goBack()">← Choisir</button>
+  </div>
+  <div id="board"></div>
+  <div id="message"></div>
+  <div id="keyboard"></div>
+</div>
+
+<!-- MODAL -->
+<div id="modal">
+  <div class="modal-box">
+    <div class="emoji" id="modal-emoji">🎉</div>
+    <h2 id="modal-title">Bravo !</h2>
+    <div class="the-word" id="modal-word"></div>
+    <div class="stats-strip">
+      <div class="stat-item">
+        <div class="stat-num" id="modal-attempts">-</div>
+        <div class="stat-lbl">essais</div>
+      </div>
+    </div>
+    <p id="modal-sub"></p>
+    <button class="btn-primary" onclick="playAgain()">Rejouer</button>
+  </div>
+</div>
+
+<script>
+  // ─── WORD LIST ───────────────────────────────────────────────
+  const ALL_WORDS = [
+    "valtho","chuchi","pocket","alegria","solecito",
+    "hayete","perrito","polyvalent","kangouroo","amor",
+    "breizh","picard","uno","spa","sorpresita",
+    "baalbek","lindo","scamcakes","play","yakhalass","boulogne"
+  ];
+
+  const MAX_GUESSES = 6;
+  const KEYBOARD_ROWS = [
+    ["a","z","e","r","t","y","u","i","o","p"],
+    ["q","s","d","f","g","h","j","k","l","m"],
+    ["Entrée","w","x","c","v","b","n","←"]
+  ];
+
+  // ─── STATE ───────────────────────────────────────────────────
+  let targetWord = "";
+  let wordLength = 0;
+  let currentGuess = [];
+  let guesses = [];
+  let gameOver = false;
+  let keyStates = {};
+
+  // ─── GROUP WORDS BY LENGTH ───────────────────────────────────
+  function getWordsByLength() {
+    const map = {};
+    ALL_WORDS.forEach(w => {
+      const l = w.length;
+      if (!map[l]) map[l] = [];
+      map[l].push(w);
+    });
+    return map;
+  }
+
+  // ─── BUILD SELECTOR ──────────────────────────────────────────
+  function buildSelector() {
+    const map = getWordsByLength();
+    const lengths = Object.keys(map).map(Number).sort((a,b) => a-b);
+    const grid = document.getElementById("length-grid");
+    grid.innerHTML = "";
+
+    lengths.forEach(len => {
+      const words = map[len];
+      const btn = document.createElement("button");
+      btn.className = "length-btn";
+      btn.innerHTML = `
+        <span class="word-count">${words.length}×</span>
+        <span class="letter-count">${len}</span>
+        <span class="letter-label">lettres</span>
+      `;
+      btn.onclick = () => startGame(len);
+      grid.appendChild(btn);
+    });
+  }
+
+  // ─── START GAME ──────────────────────────────────────────────
+  function startGame(len) {
+    const map = getWordsByLength();
+    const words = map[len];
+    targetWord = words[Math.floor(Math.random() * words.length)];
+    wordLength = len;
+    currentGuess = [];
+    guesses = [];
+    gameOver = false;
+    keyStates = {};
+
+    document.getElementById("selector-screen").style.display = "none";
+    const gs = document.getElementById("game-screen");
+    gs.style.display = "flex";
+    document.getElementById("game-info").textContent = `${wordLength} lettres · ${MAX_GUESSES} essais`;
+    document.getElementById("message").textContent = "";
+
+    buildBoard();
+    buildKeyboard();
+  }
+
+  function goBack() {
+    document.getElementById("game-screen").style.display = "none";
+    document.getElementById("selector-screen").style.display = "flex";
+  }
+
+  // ─── BUILD BOARD ─────────────────────────────────────────────
+  function buildBoard() {
+    const board = document.getElementById("board");
+    board.innerHTML = "";
+    board.style.gridTemplateRows = `repeat(${MAX_GUESSES}, 1fr)`;
+
+    for (let r = 0; r < MAX_GUESSES; r++) {
+      const row = document.createElement("div");
+      row.className = "tile-row";
+      row.id = `row-${r}`;
+      for (let c = 0; c < wordLength; c++) {
+        const tile = document.createElement("div");
+        tile.className = "tile";
+        tile.id = `tile-${r}-${c}`;
+        row.appendChild(tile);
+      }
+      board.appendChild(row);
+    }
+  }
+
+  // ─── BUILD KEYBOARD ──────────────────────────────────────────
+  function buildKeyboard() {
+    const kb = document.getElementById("keyboard");
+    kb.innerHTML = "";
+    KEYBOARD_ROWS.forEach(row => {
+      const rowEl = document.createElement("div");
+      rowEl.className = "key-row";
+      row.forEach(k => {
+        const btn = document.createElement("button");
+        btn.className = "key" + (k.length > 1 ? " wide" : "");
+        btn.textContent = k;
+        btn.id = `key-${k}`;
+        btn.onclick = () => handleKey(k);
+        rowEl.appendChild(btn);
+      });
+      kb.appendChild(rowEl);
+    });
+  }
+
+  // ─── INPUT ───────────────────────────────────────────────────
+  document.addEventListener("keydown", e => {
+    if (document.getElementById("game-screen").style.display !== "flex") return;
+    if (e.key === "Enter") handleKey("Entrée");
+    else if (e.key === "Backspace") handleKey("←");
+    else if (/^[a-zA-ZÀ-ÿ]$/.test(e.key)) handleKey(e.key.toLowerCase());
+  });
+
+  function handleKey(k) {
+    if (gameOver) return;
+    if (k === "←") {
+      if (currentGuess.length > 0) {
+        currentGuess.pop();
+        updateCurrentRow();
+      }
+    } else if (k === "Entrée") {
+      submitGuess();
+    } else if (currentGuess.length < wordLength && /^[a-zA-ZÀ-ÿ]$/.test(k)) {
+      currentGuess.push(k.toLowerCase());
+      updateCurrentRow();
+    }
+  }
+
+  function updateCurrentRow() {
+    const rowIdx = guesses.length;
+    for (let c = 0; c < wordLength; c++) {
+      const tile = document.getElementById(`tile-${rowIdx}-${c}`);
+      tile.textContent = currentGuess[c] ? currentGuess[c].toUpperCase() : "";
+      tile.className = "tile" + (currentGuess[c] ? " filled" : "");
+    }
+  }
+
+  // ─── SUBMIT ──────────────────────────────────────────────────
+  function submitGuess() {
+    if (currentGuess.length !== wordLength) {
+      shakeRow(guesses.length);
+      showMessage("Mot trop court !");
+      return;
+    }
+
+    const guess = currentGuess.join("");
+    const result = evaluateGuess(guess);
+    guesses.push(guess);
+
+    revealRow(guesses.length - 1, result, () => {
+      updateKeyboard(guess, result);
+
+      if (guess === targetWord) {
+        gameOver = true;
+        setTimeout(() => bounceRow(guesses.length - 1), 100);
+        setTimeout(() => showModal(true), 600);
+        return;
+      }
+
+      if (guesses.length >= MAX_GUESSES) {
+        gameOver = true;
+        setTimeout(() => showModal(false), 400);
+        return;
+      }
+
+      currentGuess = [];
+      showMessage("");
+    });
+  }
+
+  // ─── EVALUATE ────────────────────────────────────────────────
+  function evaluateGuess(guess) {
+    const result = Array(wordLength).fill("absent");
+    const target = targetWord.split("");
+    const used = Array(wordLength).fill(false);
+
+    // Correct pass
+    for (let i = 0; i < wordLength; i++) {
+      if (guess[i] === target[i]) {
+        result[i] = "correct";
+        used[i] = true;
+      }
+    }
+
+    // Present pass
+    for (let i = 0; i < wordLength; i++) {
+      if (result[i] === "correct") continue;
+      for (let j = 0; j < wordLength; j++) {
+        if (!used[j] && guess[i] === target[j]) {
+          result[i] = "present";
+          used[j] = true;
+          break;
+        }
+      }
+    }
+
+    return result;
+  }
+
+  // ─── REVEAL ANIMATION ────────────────────────────────────────
+  function revealRow(rowIdx, result, callback) {
+    for (let c = 0; c < wordLength; c++) {
+      const tile = document.getElementById(`tile-${rowIdx}-${c}`);
+      const delay = c * 300;
+      setTimeout(() => {
+        tile.classList.add("reveal");
+        setTimeout(() => {
+          tile.classList.remove("reveal");
+          tile.classList.add(result[c]);
+        }, 250);
+      }, delay);
+    }
+    setTimeout(callback, wordLength * 300 + 100);
+  }
+
+  function shakeRow(rowIdx) {
+    const row = document.getElementById(`row-${rowIdx}`);
+    row.querySelectorAll(".tile").forEach(t => {
+      t.classList.remove("shake");
+      void t.offsetWidth;
+      t.classList.add("shake");
+    });
+  }
+
+  function bounceRow(rowIdx) {
+    const row = document.getElementById(`row-${rowIdx}`);
+    row.querySelectorAll(".tile").forEach((t, i) => {
+      setTimeout(() => {
+        t.classList.add("bounce");
+        setTimeout(() => t.classList.remove("bounce"), 600);
+      }, i * 80);
+    });
+  }
+
+  // ─── KEYBOARD UPDATE ─────────────────────────────────────────
+  function updateKeyboard(guess, result) {
+    for (let i = 0; i < guess.length; i++) {
+      const letter = guess[i];
+      const cur = keyStates[letter];
+      if (cur === "correct") continue;
+      if (result[i] === "correct" || cur !== "present" && result[i] === "present") {
+        keyStates[letter] = result[i];
+      } else if (!cur) {
+        keyStates[letter] = result[i];
+      }
+    }
+
+    Object.entries(keyStates).forEach(([letter, state]) => {
+      const key = document.getElementById(`key-${letter}`);
+      if (key) {
+        key.className = "key" + (key.textContent.length > 1 ? " wide" : "") + " " + state;
+      }
+    });
+  }
+
+  // ─── MESSAGE ─────────────────────────────────────────────────
+  let msgTimer;
+  function showMessage(msg) {
+    const el = document.getElementById("message");
+    el.textContent = msg;
+    clearTimeout(msgTimer);
+    if (msg) msgTimer = setTimeout(() => el.textContent = "", 1800);
+  }
+
+  // ─── MODAL ───────────────────────────────────────────────────
+  const MESSAGES_WIN = ["Parfait !","Excellent !","Bravo !","Super !","Bien joué !","Ouf !"];
+
+  function showModal(won) {
+    const modal = document.getElementById("modal");
+    document.getElementById("modal-emoji").textContent = won ? (guesses.length <= 2 ? "🔥" : "🎉") : "😔";
+    document.getElementById("modal-title").textContent = won ? MESSAGES_WIN[Math.min(guesses.length - 1, 5)] : "Raté !";
+    document.getElementById("modal-word").textContent = targetWord.toUpperCase();
+    document.getElementById("modal-attempts").textContent = won ? guesses.length : "×";
+    document.getElementById("modal-sub").textContent = won
+      ? `Trouvé en ${guesses.length} essai${guesses.length > 1 ? "s" : ""} sur ${MAX_GUESSES}`
+      : "Le mot était…";
+    modal.classList.add("open");
+  }
+
+  function playAgain() {
+    document.getElementById("modal").classList.remove("open");
+    goBack();
+  }
+
+  // ─── INIT ────────────────────────────────────────────────────
+  buildSelector();
+</script>
+</body>
+</html>
